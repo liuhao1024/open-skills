@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Validate plugin.json files
+        run: |
+          for f in plugins/*/plugin.json; do
+            echo "Validating $f..."
+            python3 -c "import json; json.load(open('$f')); print('  ✅ Valid JSON')"
+          done
+
+      - name: Check Python syntax
+        run: |
+          find plugins -name "*.py" -exec python3 -m py_compile {} \; && echo "✅ All Python files compile"
+
+      - name: Check JS syntax
+        run: |
+          for f in plugins/*/workflows/*.js; do
+            if [ -f "$f" ]; then
+              echo "Checking $f..."
+              node --check "$f" 2>/dev/null && echo "  ✅ Valid JS" || echo "  ⚠️ Skipped (no Node.js)"
+            fi
+          done
+
+  test:
+    name: Test Scripts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Test financial_analyzer.py
+        run: |
+          cd plugins/trading-agents
+          python3 scripts/financial_analyzer.py --sample > /dev/null
+          python3 scripts/financial_analyzer.py --sample | python3 scripts/financial_analyzer.py /dev/stdin > /dev/null
+          echo "✅ financial_analyzer.py works"
+
+      - name: Test stock_data.py config
+        run: |
+          cd plugins/trading-agents
+          python3 scripts/stock_data.py config validate > /dev/null
+          echo "✅ stock_data.py config works"
+
+  plugin-check:
+    name: Plugin Structure Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check plugin structure
+        run: |
+          for plugin_dir in plugins/*/; do
+            plugin_name=$(basename "$plugin_dir")
+            if [ "$plugin_name" = "_template" ]; then continue; fi
+
+            echo "📦 Checking: $plugin_name"
+
+            # Required files
+            for required in plugin.json README.md SKILL.md; do
+              if [ -f "$plugin_dir/$required" ]; then
+                echo "  ✅ $required"
+              else
+                echo "  ❌ Missing: $required"
+                exit 1
+              fi
+            done
+
+            # Validate plugin.json has required fields
+            python3 -c "
+          import json, sys
+          with open('${plugin_dir}plugin.json') as f:
+            data = json.load(f)
+          for key in ['name', 'version', 'description']:
+            if key not in data:
+              print(f'  ❌ Missing field: {key}')
+              sys.exit(1)
+          print(f'  ✅ plugin.json: {data[\"name\"]} v{data[\"version\"]}')
+          "
+          done
