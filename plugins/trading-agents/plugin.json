@@ -1,0 +1,28 @@
+{
+  "name": "trading-agents",
+  "version": "1.0.0",
+  "description": "Multi-agent equity analysis pipeline — 4 analysts, bull/bear debate, risk assessment, portfolio manager",
+  "author": "liuhao1024",
+  "license": "MIT",
+  "keywords": ["stock", "trading", "analysis", "multi-agent", "finance", "A-share"],
+  "platforms": {
+    "claude-code": {
+      "workflows": ["workflows/trading-agents.js"],
+      "min_version": "1.0.0"
+    },
+    "codex": {
+      "skill": "SKILL.md",
+      "scripts": [
+        "scripts/stock_data.py",
+        "scripts/financial_analyzer.py"
+      ]
+    }
+  },
+  "dependencies": {
+    "python": ">=3.10",
+    "packages": ["requests>=2.28.0"]
+  },
+  "config": {
+    "watchlist": "config/watchlist.example.json"
+  }
+}

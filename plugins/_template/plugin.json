@@ -1,0 +1,21 @@
+{
+  "name": "my-plugin",
+  "version": "0.1.0",
+  "description": "Plugin description",
+  "author": "yourname",
+  "license": "MIT",
+  "keywords": [],
+  "platforms": {
+    "claude-code": {
+      "workflows": []
+    },
+    "codex": {
+      "skill": "SKILL.md",
+      "scripts": []
+    }
+  },
+  "dependencies": {
+    "python": ">=3.10",
+    "packages": []
+  }
+}
